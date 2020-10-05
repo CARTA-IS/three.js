@@ -26,7 +26,7 @@
 
 			import Stats from './jsm/libs/stats.module.js';
 
-			import { FirstPersonControls } from './jsm/controls/FirstPersonControls.js';
+      import { OrbitControls } from './jsm/controls/OrbitControls.js';
 			import { ImprovedNoise } from './jsm/math/ImprovedNoise.js';
 
 			var container, stats;
@@ -35,35 +35,52 @@
 
 			var mesh, texture;
 
-			var worldWidth = 256, worldDepth = 256,
+      // TODO: 서버에서 제공되는 값
+			var worldWidth = 1000, worldDepth = 1035,
 				worldHalfWidth = worldWidth / 2, worldHalfDepth = worldDepth / 2;
 
 			var clock = new THREE.Clock();
 
-			init();
-			animate();
+      function loadTerrain(file, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.responseType = 'arraybuffer';
+        xhr.open('GET', file, true);
+        xhr.onload = function(evt) {    
+          if (xhr.response) {
+            callback(new Float32Array(xhr.response));
+          }
+        };  
+        xhr.send(null);
+      }
 
-			function init() {
+      loadTerrain('./dsm.bin', function(data) {
+        console.log(data);
+		    init(data);
+		    animate();
+      });
+
+			function init(data) {
 
 				container = document.getElementById( 'container' );
 
-				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 20000 );
+				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 2000000 );
 
 				scene = new THREE.Scene();
 				scene.background = new THREE.Color( 0xbfd1e5 );
 
-				var data = generateHeight( worldWidth, worldDepth );
-
+				// var data = generateHeight( worldWidth, worldDepth );
 				camera.position.y = data[ worldHalfWidth + worldHalfDepth * worldWidth ] * 10 + 500;
 
-				var geometry = new THREE.PlaneBufferGeometry( 7500, 7500, worldWidth - 1, worldDepth - 1 );
+        // TODO: 서버에서 제공되는 값 
+        var width = 335, height = 347;
+				var geometry = new THREE.PlaneBufferGeometry(width, height, worldWidth - 1, worldDepth - 1 );
 				geometry.rotateX( - Math.PI / 2 );
 
 				var vertices = geometry.attributes.position.array;
 
 				for ( var i = 0, j = 0, l = vertices.length; i < l; i ++, j += 3 ) {
 
-					vertices[ j + 1 ] = data[ i ] * 10;
+					vertices[ j + 1 ] = data[ i ];
 
 				}
 
@@ -79,12 +96,12 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				container.appendChild( renderer.domElement );
 
-				controls = new FirstPersonControls( camera, renderer.domElement );
+        controls = new OrbitControls( camera, renderer.domElement );
 				controls.movementSpeed = 1000;
-				controls.lookSpeed = 0.1;
 
 				stats = new Stats();
 				container.appendChild( stats.dom );
+        
 
 				//
 
@@ -145,6 +162,14 @@
 				image = context.getImageData( 0, 0, canvas.width, canvas.height );
 				imageData = image.data;
 
+        var r = Math.random()*128;
+        var g = Math.random()*128;
+        var b = Math.random()*128;
+
+        r = 96;
+        b = 32;
+        b = 0;
+
 				for ( var i = 0, j = 0, l = imageData.length; i < l; i += 4, j ++ ) {
 
 					vector3.x = data[ j - 2 ] - data[ j + 2 ];
@@ -154,9 +179,9 @@
 
 					shade = vector3.dot( sun );
 
-					imageData[ i ] = ( 96 + shade * 128 ) * ( 0.5 + data[ j ] * 0.007 );
-					imageData[ i + 1 ] = ( 32 + shade * 96 ) * ( 0.5 + data[ j ] * 0.007 );
-					imageData[ i + 2 ] = ( shade * 96 ) * ( 0.5 + data[ j ] * 0.007 );
+					imageData[ i ] = ( r + shade * 128 ) * ( 0.5 + data[ j ] * 0.007 );
+					imageData[ i + 1 ] = ( g + shade * 96 ) * ( 0.5 + data[ j ] * 0.007 );
+					imageData[ i + 2 ] = ( b + shade * 96 ) * ( 0.5 + data[ j ] * 0.007 );
 
 				}
 
